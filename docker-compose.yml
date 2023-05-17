@@ -1,0 +1,114 @@
+version: "3.7"
+services:
+  app:
+    build:
+      args:
+        user: sammy
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    image: laravel_app
+    container_name: laravel_app-app
+    restart: unless-stopped
+    environment:
+      - "DB_PORT=27017"
+      - "DB_HOST=mongodb_ser" # link to the container name host 
+      ## db port and host environment on docker container 
+    working_dir: /var/www/src/blog/
+    depends_on:
+          - mongodb_ser
+    volumes:
+      - ./:/var/www
+    networks:
+      - laravel_app
+  # mysql service    container
+  mysql_db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: unless-stopped
+    ports:
+      - 3307:3306
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ALLOW_EMPTY_PASSWORD : "yes"
+    volumes:
+      - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - laravel_app 
+  #phpmyadmin service container 
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: pma
+    links:
+      - mysql_db
+    environment:
+      PMA_HOST: mysql_db
+      PMA_PORT: 3306
+    restart: always
+    depends_on:
+      - mysql_db
+    ports:
+      - 8081:80
+    volumes:
+      #Adding volume makes sure that data is persistant and wont get deleted after your docker stops
+      #Everytime this mongodb service starts data from your system mongo-data gets replicated to /data/db folder inside docker container
+      - ./mysql-data:/data/db
+    networks:
+      - laravel_app 
+  # mongo service container
+  mongodb_ser:
+    container_name: mongodb
+    image: mongo:latest
+   
+    environment:
+      #Default username, password and database of mongodb
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
+      MONGO_INITDB_DATABASE: ${DB_DATABASE}
+    ports:
+      - 27019:27017
+      ## incoming 27019 >>>>> point to 27017
+    volumes:
+      #Adding volume makes sure that data is persistant and wont get deleted after your docker stops
+      #Everytime this mongodb service starts data from your system mongo-data gets replicated to /data/db folder inside docker container
+      - ./mongo-data:/data/db
+    networks:
+      #Adding network makes sure that we can operate with our API's like local setup
+      - laravel_app
+
+
+  #nginx service container
+  nginx:
+    image: nginx:alpine
+    container_name: laravel_app-nginx
+    restart: unless-stopped
+    ports:
+      - 8000:80
+    volumes:
+      - ./src/blog/public:/var/www/src/blog/public
+      - ./docker-compose/nginx:/etc/nginx/conf.d/
+    networks:
+      - laravel_app
+ 
+  #npm container 
+  npm:
+    container_name: 'npm'
+    image: node:current-alpine
+    ports:
+      - 3000:3000
+      - 3001:3001
+      - 5173:5173
+
+    volumes:
+      - ./src/blog:/var/www/src/blog
+    entrypoint: ["npm"]
+    working_dir: /var/www/src/blog/
+    networks:
+      - laravel_app
+networks:
+  laravel_app:
+    driver: bridge
+    
