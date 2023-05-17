@@ -1,6 +1,6 @@
 # docker_laravel_mongo
 
-``
+```php
 docker-compose build app
 docker-compose up -d
 docker-compose exec app rm -rf vendor composer.lock
@@ -20,9 +20,7 @@ docker-compose run --rm npm run dev
 docker rmi id -f   # image
 docker rm id -f  # container
 
-``
-
-```php
+#hasib
 
 
 'mongodb' => [
