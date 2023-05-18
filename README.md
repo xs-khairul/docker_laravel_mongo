@@ -45,7 +45,7 @@ Jenssegers\Mongodb\MongodbServiceProvider::class,
  
 
  ## we need some comands thats build initial image than run  the container all are listed below 
- ## how we eun composer command php command etc 
+ ## how we run composer command php command etc 
  
 
 ```php
